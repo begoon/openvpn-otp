@@ -24,10 +24,10 @@ struct ConsoleView: View {
     }
 }
 
-extension NSWindow {
-    public func hide() { orderOut(nil) }
-    public func show() { makeKeyAndOrderFront(nil) }
-    func visibility(_ visible: Bool) {
+public extension NSWindow {
+    func hide() { orderOut(nil) }
+    func show() { makeKeyAndOrderFront(nil) }
+    internal func visibility(_ visible: Bool) {
         visible ? show() : hide()
     }
 }
@@ -113,6 +113,14 @@ struct OTP: App {
                             trace("ERROR: \(error.localizedDescription)")
                         }
                     }
+                }
+                Button("One-time password") {
+                    NSPasteboard.general.clearContents()
+                    let password = settings.account.otp
+                    if !NSPasteboard.general.setString(password, forType: .string) {
+                        trace("NSPasteboard.general.setString failed")
+                    }
+                    trace("OTP: \(password)")
                 }
                 Toggle("Console", isOn: self.$consoleVisible)
             }
@@ -230,6 +238,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("---")
         for window in NSApp.windows {
