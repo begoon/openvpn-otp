@@ -260,6 +260,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 func fetchIP() async throws -> String {
     guard let url = URL(string: "https://api.ipify.org") else { throw URLError(.badURL) }
-    let (data, _) = try await URLSession.shared.data(from: url)
+    
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.waitsForConnectivity = true
+    let session = URLSession(configuration: configuration)
+    defer { session.invalidateAndCancel() }
+
+    let data = try await session.data(from: url).0
     return String(data: data, encoding: .utf8)!
 }
