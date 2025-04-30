@@ -13,5 +13,4 @@ build:
 	xcodebuild
 
 clean:
-	-rm -rf build
-
+	-rm -rf build release

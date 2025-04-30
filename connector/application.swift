@@ -25,8 +25,8 @@ struct ConsoleView: View {
 }
 
 extension NSWindow {
-    private func hide() { orderOut(nil) }
-    private func show() { makeKeyAndOrderFront(nil) }
+    public func hide() { orderOut(nil) }
+    public func show() { makeKeyAndOrderFront(nil) }
     func visibility(_ visible: Bool) {
         visible ? show() : hide()
     }
@@ -40,24 +40,20 @@ enum ConnectionState {
 
 @main
 struct OTP: App {
-    init() {
-        temporaryCredentialFilename = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        processIdentifier = 0
-    }
-
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     @State private var state: ConnectionState = .disconnected
 
-    @State private var ip: String = "..."
+    @State private var ip: String = "127.0.0.1"
 
     @State private var consoleVisible: Bool = false
-
     @State public var console: String = ""
 
-    @State private var processIdentifier: Int32
+    @State private var processIdentifier: Int32 = 0
 
-    @State private var temporaryCredentialFilename: URL
+    @State private var temporaryCredentialFilename = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+
+    @State private var settings = Settings()
 
     func visibility(_ visible: Bool) {
         NSApp.windows.filter { $0.className == "SwiftUI.AppKitWindow" }.forEach { window in window.visibility(visible) }
@@ -69,61 +65,59 @@ struct OTP: App {
         .connecting: "cable.connector.video",
     ]
 
+    func trace(_ text: String, terminator: String = "\n") {
+        print(text, terminator: terminator)
+        if !console.isEmpty && console.last != "\n" { console += "\n" }
+        console += text + terminator
+    }
+
     func updateIP() {
         Task {
             self.ip = try await fetchIP()
-            print("\(self.ip)")
-            self.console += "\(self.ip)\n"
+            trace("\(self.ip)")
         }
     }
 
     var body: some Scene {
         Window("VPN/OTP", id: "VPN/OTP") {
-            ConsoleView(content: self.$console)
-                .onAppear {
-                    print("onAppear()")
-                    self.updateIP()
-                    self.visibility(false)
-                    for window in NSApp.windows.filter({ $0.className == "SwiftUI.AppKitWindow" }) {
-                        window.standardWindowButton(.closeButton)?.isEnabled = false
-                        print(
-                            "window \(window.identifier?.rawValue ?? "?")",
-                            "visible=\(window.isVisible)",
-                            "restorable=\(window.isRestorable)"
-                        )
-                        window.isRestorable = false
+            if settings.ok {
+                ConsoleView(content: self.$console)
+                    .onAppear {
+                        self.visibility(false)
+                        print(".onAppear()")
+                        self.updateIP()
                     }
-                }
-                .onChange(of: self.consoleVisible) { before, visible in
-                    print("onChange() visibility from", before, visible)
-                    self.visibility(visible)
-                }
+                    .onChange(of: self.consoleVisible) { before, visible in
+                        print(".onChange() visibility from", before, visible)
+                        self.visibility(visible)
+                    }
+            } else {
+                Text(settings.error!).textSelection(.enabled).padding().font(.largeTitle)
+                Button("Quit") { NSApplication.shared.terminate(nil) }
+            }
         }
         MenuBarExtra("-", systemImage: icons[state]!) {
-            Text(self.ip).bold()
-            if self.state == .connected {
-                Button("Stop") { self.kill() }
-            } else {
-                Button("Start") {
-                    do {
-                        let command = try openvpnCommand()
-                        self.start(command)
-                        self.state = .connecting
-                        print("CONNECTING")
-                        if self.console.last != "\n" { self.console += "\n" }
-                        self.console += "CONNECTING\n"
-                    } catch {
-                        print(error.localizedDescription)
-                        if self.console.last != "\n" { self.console += "\n" }
-                        self.console += "ERROR: \(error.localizedDescription)"
+            if settings.ok {
+                Text(self.settings.account.label)
+                Text(self.ip).bold()
+                if self.state == .connected {
+                    Button("Disconnect") { self.kill() }
+                } else {
+                    Button("Connect") {
+                        do {
+                            let command = try openvpnCommand()
+                            self.start(command)
+                            self.state = .connecting
+                            trace("CONNECTING")
+                        } catch {
+                            trace("ERROR: \(error.localizedDescription)")
+                        }
                     }
                 }
+                Toggle("Console", isOn: self.$consoleVisible)
             }
-            Toggle("Console", isOn: self.$consoleVisible)
             if state == .disconnected {
-                Button("Quit") {
-                    NSApplication.shared.terminate(nil)
-                }.keyboardShortcut("q")
+                Button("Quit") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
             }
         }
     }
@@ -131,8 +125,7 @@ struct OTP: App {
     func start(_ command: String) {
         let args = command.split(separator: " ").map { String($0) }
 
-        print("COMMAND: \(command)")
-        console += "COMMAND: \(command)\n"
+        trace("COMMAND: \(command)")
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: args.first!)
@@ -144,10 +137,8 @@ struct OTP: App {
 
         process.terminationHandler = { process in
             let reason = (process.terminationReason == .exit) ? "exit" : "uncaught signal"
-            DispatchQueue.main.async {
-                print("process exited with \(process.terminationStatus) due to \(reason)")
-                if self.console.last != "\n" { self.console += "\n" }
-                self.console += "process exited with \(process.terminationStatus) due to \(reason)\n"
+            Task { @MainActor in
+                trace("process exited with \(process.terminationStatus) due to \(reason)")
                 removeCredentialsFile()
                 self.state = .disconnected
             }
@@ -156,27 +147,19 @@ struct OTP: App {
         pipe.fileHandleForReading.readabilityHandler = { handle in
             let data = handle.availableData
             if let text = String(data: data, encoding: .utf8), !text.isEmpty {
-                print(text, terminator: "")
-                DispatchQueue.main.async {
-                    if self.console.last != "\n" { self.console += "\n" }
-                    console += text
-                }
+                Task { @MainActor in trace(text, terminator: "") }
                 if text.contains("Initialization Sequence Completed") {
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         removeCredentialsFile()
-                        print("CONNECTED")
-                        if self.console.last != "\n" { self.console += "\n" }
-                        self.console += "CONNECTED\n"
+                        trace("CONNECTED")
                         self.updateIP()
                         self.state = .connected
                     }
                 }
                 if text.contains("SIGTERM") {
-                    DispatchQueue.main.async {
+                    Task { @MainActor in
                         removeCredentialsFile()
-                        print("DISCONNECTED")
-                        if self.console.last != "\n" { self.console += "\n" }
-                        self.console += "DISCONNECTED\n"
+                        trace("DISCONNECTED")
                         self.updateIP()
                         self.state = .disconnected
                     }
@@ -187,24 +170,20 @@ struct OTP: App {
         do {
             try process.run()
             processIdentifier = Int32(process.processIdentifier)
-            print("process started \(processIdentifier)")
-            if console.last != "\n" { console += "\n" }
-            console += "process started \(processIdentifier)\n"
+            trace("process started \(processIdentifier)")
         } catch {
-            print("process error: \(error.localizedDescription)")
-            if console.last != "\n" { console += "\n" }
-            console += "process error: \(error.localizedDescription)\n"
+            trace("process error: \(error.localizedDescription)")
             removeCredentialsFile()
         }
     }
 
     func kill() {
-        print("killing process \(processIdentifier)")
+        print("\(settings.kill): \(processIdentifier)")
 
         let killer = Process()
 
-        let command = "/usr/bin/sudo -S /bin/kill \(processIdentifier)"
-        print("COMMAND: \(command)")
+        let command = "\(settings.sudo) -S \(settings.kill) \(processIdentifier)"
+        trace("COMMAND: \(command)")
 
         let args = command.split(separator: " ").map { String($0) }
 
@@ -214,39 +193,33 @@ struct OTP: App {
         do {
             try killer.run()
         } catch {
-            print("ERROR: /bin/kill: \(error.localizedDescription)")
-            if console.last != "\n" { console += "\n" }
-            console += error.localizedDescription + "\n"
+            trace("ERROR: /bin/kill: \(error.localizedDescription)")
         }
     }
 
     func openvpnCommand() throws -> String {
-        let account = try Account(from: AccountsFilename)
-
+        let account = settings.account
         let credentials = account.username + "\n" + account.otp + "\n"
 
         try credentials.write(to: temporaryCredentialFilename, atomically: true, encoding: .utf8)
         print("credentials written to \(temporaryCredentialFilename.path)")
 
-        let label = account.label
         let command = [
-            "/usr/bin/sudo", "-S",
-            "/opt/homebrew/sbin/openvpn",
-            "--config", ConfigDirectory.appendingPathComponent(label + ".ovpn").path,
+            "\(settings.sudo)", "-S",
+
+            "\(settings.openvpn)",
+            "--config", account.certificate,
             "--auth-nocache",
             "--auth-user-pass", temporaryCredentialFilename.path,
         ].joined(separator: " ")
 
-        print("\(command)")
-        console += "\(command)\n"
+        trace("\(command)")
         return command
     }
 
     func removeCredentialsFile() {
         if !FileManager.default.fileExists(atPath: temporaryCredentialFilename.path) { return }
-        print("delete temporary credentials file \(temporaryCredentialFilename.path)")
-        if console.last != "\n" { console += "\n" }
-        console += "delete temporary credentials file \(temporaryCredentialFilename.path)\n"
+        trace("delete temporary credentials file \(temporaryCredentialFilename.path)")
         do {
             try FileManager.default.removeItem(at: temporaryCredentialFilename)
         } catch {}
@@ -257,13 +230,27 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        print("---")
+        for window in NSApp.windows {
+            print(
+                window,
+                "window=\(window.identifier?.rawValue ?? "?")",
+                "visible=\(window.isVisible)",
+                "restorable=\(window.isRestorable)",
+            )
+            if window.className == "SwiftUI.AppKitWindow" {
+                window.standardWindowButton(.closeButton)?.isEnabled = false
+                window.isRestorable = false
+                window.hide()
+            }
+        }
+        print("---")
+    }
 }
 
 func fetchIP() async throws -> String {
-    debugPrint("BEFORE: ip")
     guard let url = URL(string: "https://api.ipify.org") else { throw URLError(.badURL) }
-//    let session = URLSession(configuration: .ephemeral)
     let (data, _) = try await URLSession.shared.data(from: url)
-    debugPrint("AFTER: ip")
     return String(data: data, encoding: .utf8)!
 }
