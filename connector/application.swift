@@ -1,5 +1,7 @@
 import SwiftUI
 
+import OTPCore
+
 struct ConsoleView: View {
     @Binding public var content: String
 

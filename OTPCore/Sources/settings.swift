@@ -1,20 +1,20 @@
 import Foundation
 
-let UserHome = FileManager.default.homeDirectoryForCurrentUser
+public let UserHome = FileManager.default.homeDirectoryForCurrentUser
 
-let SettingsFilename = UserHome.appendingPathComponent(".otpvpn/settings.json")
+public let SettingsFilename = UserHome.appendingPathComponent(".otpvpn/settings.json")
 
-struct Account: Codable {
-    var label: String
-    var username: String
-    var password: String
-    var secret: String
+public struct Account: Codable {
+    public var label: String
+    public var username: String
+    public var password: String
+    public var secret: String
     
-    var otp: String {
+    public var otp: String {
         password.replacingOccurrences(of: "<@>", with: totp(using: self.secret))
     }
     
-    var certificate: String {
+    public var certificate: String {
         SettingsFilename.deletingLastPathComponent().appendingPathComponent(label + ".ovpn").path
     }
 }
@@ -33,17 +33,17 @@ let DefaultSettings = """
 }
 """
 
-struct Settings: Codable {
-    var account: Account
+public struct Settings: Codable {
+    public var account: Account
     
-    var openvpn: String
-    var sudo: String
-    var kill: String
+    public var openvpn: String
+    public var sudo: String
+    public var kill: String
     
-    var error: String?
-    var ok: Bool { error == nil }
+    public var error: String?
+    public var ok: Bool { error == nil }
     
-    init(from text: String) {
+    public init(from text: String) {
         do {
             self = try JSONDecoder().decode(Settings.self, from: Data(text.utf8))
         } catch {
@@ -53,7 +53,7 @@ struct Settings: Codable {
         }
     }
 
-    init(from fileURL: URL = SettingsFilename) {
+    public init(from fileURL: URL = SettingsFilename) {
         print("load settings from \(fileURL.path)")
         do {
             let contents = try String(contentsOf: fileURL, encoding: .utf8)
