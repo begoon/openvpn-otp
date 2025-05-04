@@ -1,20 +1,15 @@
 {
   "configurations" : [
     {
-      "id" : "94100A56-4735-4A37-9AA8-BBD03C96AE92",
-      "name" : "Test Scheme Action",
+      "id" : "89C50139-3590-49B0-9E4A-B5B6C79C956A",
+      "name" : "Configuration",
       "options" : {
 
       }
     }
   ],
   "defaultOptions" : {
-    "codeCoverage" : false,
-    "targetForVariableExpansion" : {
-      "containerPath" : "container:connector.xcodeproj",
-      "identifier" : "11B2BA3D2D6F409900E646EC",
-      "name" : "OTP\/VPN"
-    }
+    "testTimeoutsEnabled" : true
   },
   "testTargets" : [
     {

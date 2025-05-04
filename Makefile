@@ -2,15 +2,17 @@
 
 all: run
 
-FILES = accounts.swift base32.swift totp.swift controller.swift
-
 release: clean build
 	-rm -rf release
 	mkdir release
-	cp -r build/Release/OTP/VPN.app release
+	cp -r build/OTP/VPN.app release
+	open release/
 	
 build:
-	xcodebuild
+	xcodebuild -scheme connector CONFIGURATION_BUILD_DIR=$(PWD)/build
 
 clean:
 	-rm -rf build release
+
+clean-git:
+	git clean -fdx

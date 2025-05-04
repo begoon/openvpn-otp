@@ -92,12 +92,12 @@ struct OTP: App {
                     .onChange(of: self.consoleVisible) { before, visible in
                         print(".onChange() visibility from", before, visible)
                         self.visibility(visible)
-                    }
+                    }.windowMinimizeBehavior(.disabled).windowDismissBehavior(.disabled)
             } else {
                 Text(settings.error!).textSelection(.enabled).padding().font(.largeTitle)
                 Button("Quit") { NSApplication.shared.terminate(nil) }
             }
-        }
+        }.restorationBehavior(.disabled).commandsRemoved()
         MenuBarExtra("-", systemImage: icons[state]!) {
             if settings.ok {
                 Text(self.settings.account.label)
@@ -251,8 +251,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 "restorable=\(window.isRestorable)",
             )
             if window.className == "SwiftUI.AppKitWindow" {
-                window.standardWindowButton(.closeButton)?.isEnabled = false
-                window.isRestorable = false
                 window.hide()
             }
         }

@@ -1,7 +1,7 @@
 .DS_Store
 xcuserdata
-project.xcworkspace/
+# project.xcworkspace/
 build/
 release/
-connector.xcodeproj/xcshareddata
+# connector.xcodeproj/xcshareddata
 OTPCore/.swiftpm
