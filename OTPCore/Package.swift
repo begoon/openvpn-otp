@@ -5,7 +5,7 @@ import PackageDescription
 
 let package = Package(
     name: "OTPCore",
-    platforms: [.macOS("10.15")],
+    platforms: [.macOS("12.0")],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(

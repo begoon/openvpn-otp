@@ -9,14 +9,18 @@ struct ConsoleView: View {
         VStack {
             ScrollViewReader { proxy in
                 ScrollView {
-                    Text(self.content)
-                        .font(.system(size: 10))
-                        .font(.system(.body, design: .monospaced))
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .id("bottom")
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(Array(content.components(separatedBy: .newlines).enumerated()), id: \.1) { _, line in
+                            HStack(alignment: .firstTextBaseline, spacing: 0) { colored(line).0 }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                    .textSelection(.enabled)
+                    .font(.system(size: 10))
+                    .font(.system(.body, design: .monospaced))
+                    .id("bottom")
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(minWidth: 600, minHeight: 100)
                 .onChange(of: self.content) { _, _ in
                     withAnimation { proxy.scrollTo("bottom", anchor: .bottom) }
@@ -29,9 +33,7 @@ struct ConsoleView: View {
 public extension NSWindow {
     func hide() { orderOut(nil) }
     func show() { makeKeyAndOrderFront(nil) }
-    internal func visibility(_ visible: Bool) {
-        visible ? show() : hide()
-    }
+    internal func visibility(_ visible: Bool) { visible ? show() : hide() }
 }
 
 enum ConnectionState {
@@ -67,16 +69,17 @@ struct OTP: App {
         .connecting: "cable.connector.video",
     ]
 
-    func trace(_ text: String, terminator: String = "\n") {
+    func trace(_ text: String, terminator: String = "\n", color: String? = nil) {
         print(text, terminator: terminator)
         if !console.isEmpty && console.last != "\n" { console += "\n" }
+        let text: String = color == nil ? text : "@" + color! + ":" + text
         console += text + terminator
     }
 
     func updateIP() {
         Task {
             self.ip = try await fetchIP()
-            trace("\(self.ip)")
+            trace("\(self.ip)", color: "blue")
         }
     }
 
@@ -110,9 +113,9 @@ struct OTP: App {
                             let command = try openvpnCommand()
                             self.start(command)
                             self.state = .connecting
-                            trace("CONNECTING")
+                            trace("CONNECTING", color: "green")
                         } catch {
-                            trace("ERROR: \(error.localizedDescription)")
+                            trace("ERROR: \(error.localizedDescription)", color: "red")
                         }
                     }
                 }
@@ -120,9 +123,9 @@ struct OTP: App {
                     NSPasteboard.general.clearContents()
                     let password = settings.account.otp
                     if !NSPasteboard.general.setString(password, forType: .string) {
-                        trace("NSPasteboard.general.setString failed")
+                        trace("NSPasteboard.general.setString failed", color: "red")
                     }
-                    trace("OTP: \(password)")
+                    trace("OTP: \(password)", color: "indigo")
                 }
                 Toggle("Console", isOn: self.$consoleVisible)
             }
@@ -135,7 +138,7 @@ struct OTP: App {
     func start(_ command: String) {
         let args = command.split(separator: " ").map { String($0) }
 
-        trace("COMMAND: \(command)")
+        trace("COMMAND: \(command)", color: "gray")
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: args.first!)
@@ -161,7 +164,7 @@ struct OTP: App {
                 if text.contains("Initialization Sequence Completed") {
                     Task { @MainActor in
                         removeCredentialsFile()
-                        trace("CONNECTED")
+                        trace("CONNECTED", color: "green")
                         self.updateIP()
                         self.state = .connected
                     }
@@ -169,7 +172,7 @@ struct OTP: App {
                 if text.contains("SIGTERM") {
                     Task { @MainActor in
                         removeCredentialsFile()
-                        trace("DISCONNECTED")
+                        trace("DISCONNECTED", color: "green")
                         self.updateIP()
                         self.state = .disconnected
                     }
@@ -180,9 +183,9 @@ struct OTP: App {
         do {
             try process.run()
             processIdentifier = Int32(process.processIdentifier)
-            trace("process started \(processIdentifier)")
+            trace("process started \(processIdentifier)", color: "brown")
         } catch {
-            trace("process error: \(error.localizedDescription)")
+            trace("process error: \(error.localizedDescription)", color: "red")
             removeCredentialsFile()
         }
     }
@@ -193,7 +196,7 @@ struct OTP: App {
         let killer = Process()
 
         let command = "\(settings.sudo) -S \(settings.kill) \(processIdentifier)"
-        trace("COMMAND: \(command)")
+        trace("COMMAND: \(command)", color: "gray")
 
         let args = command.split(separator: " ").map { String($0) }
 
@@ -203,7 +206,7 @@ struct OTP: App {
         do {
             try killer.run()
         } catch {
-            trace("ERROR: /bin/kill: \(error.localizedDescription)")
+            trace("ERROR: /bin/kill: \(error.localizedDescription)", color: "red")
         }
     }
 
@@ -223,13 +226,13 @@ struct OTP: App {
             "--auth-user-pass", temporaryCredentialFilename.path,
         ].joined(separator: " ")
 
-        trace("\(command)")
+        trace("\(command)", color: "cyan")
         return command
     }
 
     func removeCredentialsFile() {
         if !FileManager.default.fileExists(atPath: temporaryCredentialFilename.path) { return }
-        trace("delete temporary credentials file \(temporaryCredentialFilename.path)")
+        trace("delete temporary credentials file \(temporaryCredentialFilename.path)", color: "gray")
         do {
             try FileManager.default.removeItem(at: temporaryCredentialFilename)
         } catch {}
@@ -260,7 +263,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
 func fetchIP() async throws -> String {
     guard let url = URL(string: "https://api.ipify.org") else { throw URLError(.badURL) }
-    
+
     let configuration = URLSessionConfiguration.ephemeral
     configuration.waitsForConnectivity = true
     let session = URLSession(configuration: configuration)
