@@ -10,7 +10,7 @@ struct ConsoleView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        ForEach(Array(content.components(separatedBy: .newlines).enumerated()), id: \.1) { _, line in
+                        ForEach(Array(content.components(separatedBy: .newlines).enumerated()), id: \.0) { _, line in
                             HStack(alignment: .firstTextBaseline, spacing: 0) { colored(line).0 }
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -103,12 +103,10 @@ struct OTP: App {
         }.restorationBehavior(.disabled).commandsRemoved()
         MenuBarExtra("-", systemImage: icons[state]!) {
             if settings.ok {
-                Text(self.settings.account.label)
-                Text(self.ip).bold()
-                if self.state == .connected {
-                    Button("Disconnect") { self.kill() }
-                } else {
-                    Button("Connect") {
+                Button(action: {
+                    if self.state == .connected {
+                        self.kill()
+                    } else {
                         do {
                             let command = try openvpnCommand()
                             self.start(command)
@@ -118,7 +116,14 @@ struct OTP: App {
                             trace("ERROR: \(error.localizedDescription)", color: "red")
                         }
                     }
+
+                }) {
+                    HStack {
+                        Image(systemName: state == .connected ? "checkmark.circle.fill" : "circle")
+                        Text(state == .connected ? "Disconnect" : "Connect")
+                    }
                 }
+                Text(self.ip).bold()
                 Button("One-time password") {
                     NSPasteboard.general.clearContents()
                     let password = settings.account.otp
