@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		112433432DC7AE7900182946 /* connector.xctestplan in Resources */ = {isa = PBXBuildFile; fileRef = 112433422DC7AE7900182946 /* connector.xctestplan */; };
-		1128C64E2DCB9672005AD44A /* Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 1128C64D2DCB9672005AD44A /* Info.plist */; };
 		11AAF1002DC363C2003ACBD2 /* OTPCore in Resources */ = {isa = PBXBuildFile; fileRef = 11AAF0FA2DC363C2003ACBD2 /* OTPCore */; };
 		11AAF1B82DC36823003ACBD2 /* OTPCore in Frameworks */ = {isa = PBXBuildFile; productRef = 11AAF1B72DC36823003ACBD2 /* OTPCore */; };
 /* End PBXBuildFile section */
@@ -127,7 +126,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1128C64E2DCB9672005AD44A /* Info.plist in Resources */,
 				11AAF1002DC363C2003ACBD2 /* OTPCore in Resources */,
 				112433432DC7AE7900182946 /* connector.xctestplan in Resources */,
 			);

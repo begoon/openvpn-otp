@@ -5,10 +5,12 @@ default: release
 release: clean build test package
 
 build:
-	xcodebuild -scheme connector CONFIGURATION_BUILD_DIR=$(PWD)/build
+	NSUnbufferedIO=YES \
+	xcodebuild -scheme connector CONFIGURATION_BUILD_DIR=$(PWD)/build -quiet
 
 test:
-	xcodebuild -scheme connector test
+	NSUnbufferedIO=YES \
+	xcodebuild -scheme connector -quiet test
 
 package:
 	-rm -rf release
