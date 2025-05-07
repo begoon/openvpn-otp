@@ -12,4 +12,6 @@ jobs:
         runs-on: macos-15
         steps:
             - uses: actions/checkout@v4
-            - run: make release
+            - run: make build
+            - run: make test
+            - run: make package

@@ -1,16 +1,21 @@
 .PHONY: build release
 
-all: run
+default: release
 
-release: clean build
+release: clean build test package
+
+build:
+	xcodebuild -scheme connector CONFIGURATION_BUILD_DIR=$(PWD)/build
+
+test:
+	xcodebuild -scheme connector test
+
+package:
 	-rm -rf release
 	mkdir release
 	cp -r build/OTP/VPN.app release
 	open release/
 	
-build:
-	xcodebuild -scheme connector CONFIGURATION_BUILD_DIR=$(PWD)/build
-
 clean:
 	-rm -rf build release
 
