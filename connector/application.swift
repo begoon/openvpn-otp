@@ -256,7 +256,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 window,
                 "window=\(window.identifier?.rawValue ?? "?")",
                 "visible=\(window.isVisible)",
-                "restorable=\(window.isRestorable)",
+                "restorable=\(window.isRestorable)"
             )
             if window.className == "SwiftUI.AppKitWindow" {
                 window.hide()
