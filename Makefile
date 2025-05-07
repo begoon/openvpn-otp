@@ -15,6 +15,9 @@ test:
 	-derivedDataPath $(PWD)/build \
 	test
 
+revision:
+	@echo "let gitCommit = \"$(shell git rev-parse --short HEAD)\"" > connector/commit.swift
+
 package:
 	-rm -rf release
 	mkdir release

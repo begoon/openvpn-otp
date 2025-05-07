@@ -88,9 +88,10 @@ struct OTP: App {
             if settings.ok {
                 ConsoleView(content: self.$console)
                     .onAppear {
-                        self.visibility(false)
                         print(".onAppear()")
+                        self.visibility(false)
                         self.updateIP()
+                        trace(gitCommit)
                     }
                     .onChange(of: self.consoleVisible) { before, visible in
                         print(".onChange() visibility from", before, visible)
@@ -136,6 +137,10 @@ struct OTP: App {
             }
             if state == .disconnected {
                 Button("Quit") { NSApplication.shared.terminate(nil) }.keyboardShortcut("q")
+            }
+            if gitCommit != "..." {
+                Divider()
+                Text(gitCommit)
             }
         }
     }

@@ -5,3 +5,4 @@ build/
 release/
 # connector.xcodeproj/xcshareddata
 OTPCore/.swiftpm
+connector/commit.swift
