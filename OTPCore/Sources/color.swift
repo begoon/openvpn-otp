@@ -7,15 +7,10 @@ let colors: [String: Color] = [
     "white": .white, "gray": .gray, "black": .black,
 ]
 
-let regex = try! NSRegularExpression(pattern: "^@(\\w+):(.*)", options: [])
-
 public func colored(_ string: String) -> (Text, Color?) {
-    if let match = regex.firstMatch(in: string, range: NSRange(string.startIndex..., in: string)) {
-        let range = Range(match.range(at: 1), in: string)!
-        if let color = colors[String(string[range])] {
-            let range = Range(match.range(at: 2), in: string)!
-            return (Text(string[range]).foregroundColor(color), color)
-        }
+    let regex = /^@(\w+):(.*)/
+    if let match = string.firstMatch(of: regex), let color = colors[String(match.1)] {
+        return (Text(match.2).foregroundColor(color), color)
     }
     return (Text(verbatim: string), nil)
 }
