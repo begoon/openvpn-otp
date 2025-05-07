@@ -9,7 +9,8 @@ import Testing
 }
 
 @Test func SettingsDefaults() async throws {
-    #expect(Settings().ok)
+    let settings = Settings(from: URL(fileURLWithPath: "abc"))
+    #expect(!settings.ok)
 }
 
 @Test func SettingsBadJSON() async throws {

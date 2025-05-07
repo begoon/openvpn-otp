@@ -11,7 +11,7 @@ build:
 
 test:
 	NSUnbufferedIO=YES \
-	xcodebuild -quiet -scheme connector \
+	xcodebuild -scheme connector \
 	-derivedDataPath $(PWD)/build \
 	test
 
