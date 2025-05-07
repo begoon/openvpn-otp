@@ -2,20 +2,23 @@
 
 default: release
 
-release: clean build test package
+release: clean test build package
 
 build:
 	NSUnbufferedIO=YES \
-	xcodebuild -scheme connector CONFIGURATION_BUILD_DIR=$(PWD)/build -quiet
+	xcodebuild -quiet -scheme connector \
+	-derivedDataPath $(PWD)/build 
 
 test:
 	NSUnbufferedIO=YES \
-	xcodebuild -scheme connector -quiet test
+	xcodebuild -quiet -scheme connector \
+	-derivedDataPath $(PWD)/build \
+	test
 
 package:
 	-rm -rf release
 	mkdir release
-	cp -r build/OTP/VPN.app release
+	cp -r build/Build/Products/Debug/OTP/VPN.app release
 	open release/
 	
 clean:
