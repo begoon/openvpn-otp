@@ -2,7 +2,7 @@
 
 default: release
 
-release: clean test build package
+release: clean test revision build package
 
 build:
 	NSUnbufferedIO=YES \
