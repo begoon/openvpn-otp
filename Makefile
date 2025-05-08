@@ -16,7 +16,7 @@ test:
 	test
 
 revision:
-	@echo "let gitCommit = \"$(shell git rev-parse --short HEAD)\"" > connector/commit.swift
+	@echo "let commit = \"$(shell git rev-parse --short HEAD)\"" > connector/version.swift
 
 package:
 	-rm -rf release
