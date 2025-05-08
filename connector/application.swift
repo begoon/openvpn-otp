@@ -59,7 +59,11 @@ struct OTP: App {
 
     @State private var settings = Settings()
 
-    @StateObject private var animator = IconAnimator(symbols: ["cable.connector.video", "network"])
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    static let connectingSymbols = ["cable.connector.video", "network"]
+
+    @State private var connectingSymbol = connectingSymbols.first!
+    @State private var connectingSymbolIndex: Int = 0
 
     func visibility(_ visible: Bool) {
         NSApp.windows.filter { $0.className == "SwiftUI.AppKitWindow" }.forEach { window in window.visibility(visible) }
@@ -104,7 +108,7 @@ struct OTP: App {
                 Button("Quit") { NSApplication.shared.terminate(nil) }
             }
         }.restorationBehavior(.disabled).commandsRemoved()
-        MenuBarExtra("-", systemImage: state == .connecting ? animator.currentSymbol : icons[state]!) {
+        MenuBarExtra {
             if settings.ok {
                 Button(action: {
                     if self.state == .connected {
@@ -144,6 +148,12 @@ struct OTP: App {
                 Divider()
                 Text(commit)
             }
+        } label: {
+            Image(systemName: state == .connecting ? self.connectingSymbol : icons[state]!)
+                .onReceive(timer) { _ in
+                    self.connectingSymbolIndex = (self.connectingSymbolIndex + 1) % Self.connectingSymbols.count
+                    self.connectingSymbol = Self.connectingSymbols[self.connectingSymbolIndex]
+                }
         }
     }
 
@@ -283,25 +293,4 @@ func fetchIP() async throws -> String {
 
     let data = try await session.data(from: url).0
     return String(data: data, encoding: .utf8)!
-}
-
-class IconAnimator: ObservableObject {
-    @Published var currentSymbol: String
-
-    private let symbols: [String]
-    private var index = 0
-    private var timer: Timer?
-
-    init(symbols: [String]) {
-        self.symbols = symbols
-        currentSymbol = symbols[0]
-        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
-            self.index = (self.index + 1) % self.symbols.count
-            self.currentSymbol = self.symbols[self.index]
-        }
-    }
-
-    deinit {
-        timer?.invalidate()
-    }
 }
