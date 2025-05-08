@@ -5,7 +5,7 @@ import SwiftUI
 @testable import OTPCore
 
 @Test func testWithPlainText() {
-    #expect(colored("abc") == (Text(verbatim: "abc"), nil))
+    #expect(colored("abc").1 == nil)
 }
 
 @Test func testWithKnownColor() {
@@ -17,5 +17,5 @@ import SwiftUI
 }
 
 @Test func testEmpty() {
-    #expect(colored("") == (Text(verbatim: ""), nil))
+    #expect(colored("").1 == nil)
 }

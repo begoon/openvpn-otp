@@ -10,7 +10,21 @@ let colors: [String: Color] = [
 public func colored(_ string: String) -> (Text, Color?) {
     let regex = /^@(\w+):(.*)/
     if let match = string.firstMatch(of: regex), let color = colors[String(match.1)] {
-        return (Text(match.2).foregroundColor(color), color)
+        let attributed = highlightIPs(in: String(match.2))
+        return (Text(attributed).foregroundColor(color), color)
     }
-    return (Text(verbatim: string), nil)
+    let attributed = highlightIPs(in: string)
+    return (Text(attributed), nil)
+}
+
+public func highlightIPs(in input: String) -> AttributedString {
+    var attributed = AttributedString(input)
+    let re = /(\d+\.\d+\.\d+\.\d+)/
+    for match in input.matches(of: re) {
+        if let range = Range(match.range, in: attributed) {
+            attributed[range].underlineStyle = .single
+            attributed[range].foregroundColor = .blue
+        }
+    }
+    return attributed
 }
