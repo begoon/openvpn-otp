@@ -59,6 +59,8 @@ struct OTP: App {
 
     @State private var settings = Settings()
 
+    @StateObject private var animator = IconAnimator(symbols: ["cable.connector.video", "network"])
+
     func visibility(_ visible: Bool) {
         NSApp.windows.filter { $0.className == "SwiftUI.AppKitWindow" }.forEach { window in window.visibility(visible) }
     }
@@ -102,7 +104,7 @@ struct OTP: App {
                 Button("Quit") { NSApplication.shared.terminate(nil) }
             }
         }.restorationBehavior(.disabled).commandsRemoved()
-        MenuBarExtra("-", systemImage: icons[state]!) {
+        MenuBarExtra("-", systemImage: state == .connecting ? animator.currentSymbol : icons[state]!) {
             if settings.ok {
                 Button(action: {
                     if self.state == .connected {
@@ -281,4 +283,25 @@ func fetchIP() async throws -> String {
 
     let data = try await session.data(from: url).0
     return String(data: data, encoding: .utf8)!
+}
+
+class IconAnimator: ObservableObject {
+    @Published var currentSymbol: String
+
+    private let symbols: [String]
+    private var index = 0
+    private var timer: Timer?
+
+    init(symbols: [String]) {
+        self.symbols = symbols
+        currentSymbol = symbols[0]
+        timer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+            self.index = (self.index + 1) % self.symbols.count
+            self.currentSymbol = self.symbols[self.index]
+        }
+    }
+
+    deinit {
+        timer?.invalidate()
+    }
 }
